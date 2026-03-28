@@ -274,6 +274,64 @@ jobs:
             body: comment
           });
 
+  geval-check:
+    needs: evaluation-tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    env:
+      LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: pip install langsmith python-dotenv
+
+    - name: Download Geval
+      run: |
+        curl -sSL https://github.com/geval-labs/geval/releases/latest/download/geval-linux-x86_64 -o geval
+        chmod +x geval
+
+    - name: Generate signals
+      run: python .github/scripts/generate_signals.py > signals.json
+
+    - name: Run Geval
+      id: geval
+      run: |
+        ./geval check --contract .geval/contract.yaml --signals signals.json
+        echo "exitcode=$?" >> $GITHUB_OUTPUT
+      continue-on-error: true
+
+    - name: Post Geval result to PR
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        RESULT=$(./geval explain --contract .geval/contract.yaml --signals signals.json)
+        # Use a heredoc to preserve newlines safely in the comment
+        cat <<EOF > comment.md
+        ### GEval Quality Gate Results
+        \`\`\`text
+        $RESULT
+        \`\`\`
+        EOF
+        gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md
+
+    - name: Enforce GEval Decision
+      run: |
+        EXIT_CODE="${{ steps.geval.outputs.exitcode }}"
+        if [ "$EXIT_CODE" = "0" ]; then
+          echo "GEval PASS."
+        elif [ "$EXIT_CODE" = "1" ]; then
+          echo "GEval mapped to REQUIRE_APPROVAL. Skipping auto-failure so reviewing humans can decide."
+        else
+          echo "GEval checks failed with BLOCK (exit code $EXIT_CODE). Fail the build."
+          exit 1
+        fi
+
   e2e-tests:
     needs: [setup, quality-checks, test-coverage]
     runs-on: ubuntu-latest

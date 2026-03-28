@@ -1,0 +1,4 @@
+name: text2sql-quality-gate
+version: "1.0.0"
+policies:
+  - path: policies/quality.yaml
