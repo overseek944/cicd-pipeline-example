@@ -53,16 +53,10 @@ jobs:
       with:
         python-version: "3.11"
 
-    - name: Install dependencies
-      run: pip install langsmith python-dotenv
-
     - name: Download Geval
       run: |
         curl -sSL https://github.com/geval-labs/geval/releases/latest/download/geval-linux-x86_64 -o geval
         chmod +x geval
-
-    - name: Generate signals
-      run: python .github/scripts/generate_signals.py > signals.json
 
     - name: Run Geval
       id: geval

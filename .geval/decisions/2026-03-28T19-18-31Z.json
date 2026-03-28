@@ -1,0 +1,39 @@
+{
+  "artifact_version": "4",
+  "geval_version": "0.1.2",
+  "bundle_hash": "c47bc2ea9a04100aceb205db07fcd09744c2bfe484e4b0686aea930962a0d8dc",
+  "contracts_combine_rule": "worst_case",
+  "contracts": [
+    {
+      "contract_path": ".geval/contract.yaml",
+      "contract_name": "text2sql-quality-gate",
+      "contract_version": "1.0.0",
+      "contract_hash": "1314dfd196332388ab64303e208e47a79d5aba112c64e2a5772c94835e7b666c",
+      "combine_rule": "worst_case",
+      "policy_results": [
+        {
+          "policy_path": "policies/quality.yaml",
+          "policy_name": "quality-gate",
+          "policy_version": "1.0.0",
+          "policy_hash": "2a2ef6cad081aa13541d916aad82a8a78555db436d1e3e942726da85121b0e37",
+          "outcome": "REQUIRE_APPROVAL",
+          "matched_rule": "response_quality_gate",
+          "matching_rules": [
+            "response_quality_gate"
+          ]
+        }
+      ],
+      "combined_decision": "REQUIRE_APPROVAL",
+      "combined_matched_rule": "policies/quality.yaml:response_quality_gate",
+      "combined_reason": "Response quality dropped below 2.5/5"
+    }
+  ],
+  "overall_combined_decision": "REQUIRE_APPROVAL",
+  "overall_matched_rule": ".geval/contract.yaml:policies/quality.yaml:response_quality_gate",
+  "overall_reason": "Response quality dropped below 2.5/5",
+  "signals_name": "langsmith-evals",
+  "signals_version": "1.0.0",
+  "signals_hash": "a41910c481b05e1774bc1621365ef1b40aae101fec043a120962ed1dfb3972e1",
+  "timestamp": "2026-03-28T19:18:31Z",
+  "approval": null
+}
