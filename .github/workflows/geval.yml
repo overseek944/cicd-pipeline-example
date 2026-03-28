@@ -61,15 +61,19 @@ jobs:
     - name: Run Geval
       id: geval
       run: |
+        set +e
         ./geval check --contract .geval/contract.yaml --signals signals.json
-        echo "exitcode=$?" >> $GITHUB_OUTPUT
+        echo "exitcode=$?" >> "$GITHUB_OUTPUT"
+        set -e
       continue-on-error: true
 
     - name: Post Geval result to PR
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        set +e
         RESULT=$(./geval explain --contract .geval/contract.yaml --signals signals.json)
+        set -e
         # Use a heredoc to preserve newlines safely in the comment
         cat <<EOF > comment.md
         ### GEval Quality Gate Results
