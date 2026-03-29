@@ -1,0 +1,126 @@
+name: GEval Quality Gate
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install uv
+      uses: astral-sh/setup-uv@v1
+      with:
+        version: "latest"
+    - name: Cache uv dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          .uv/cache
+          .venv
+        key: ${{ runner.os }}-uv-comprehensive-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-comprehensive-
+    - name: Install dependencies
+      run: uv sync
+
+  geval-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    env:
+      LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Download Geval
+      run: |
+        curl -sSL https://github.com/geval-labs/geval/releases/latest/download/geval-linux-x86_64 -o geval
+        chmod +x geval
+
+    - name: Run Geval
+      id: geval
+      run: |
+        set +e
+        ./geval check --contract .geval/contract.yaml --signals signals.json
+        echo "exitcode=$?" >> "$GITHUB_OUTPUT"
+        set -e
+      continue-on-error: true
+
+    - name: Post Geval result to PR
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        set +e
+        RESULT=$(./geval explain --contract .geval/contract.yaml --signals signals.json)
+        set -e
+        # Use a heredoc to preserve newlines safely in the comment
+        cat <<EOF > comment.md
+        ### GEval Quality Gate Results
+        \`\`\`text
+        $RESULT
+        \`\`\`
+        EOF
+        
+        # Append approval info to the PR comment if it exists
+        if [ -f ".geval/approval.json" ]; then
+          APPROVED_BY=$(jq -r '.approved_by' .geval/approval.json)
+          REASON=$(jq -r '.reason' .geval/approval.json)
+          TIMESTAMP=$(jq -r '.timestamp' .geval/approval.json)
+          cat <<EOF >> comment.md
+        
+        ✅ **Approved By Human:** \`$APPROVED_BY\`
+        📝 **Reason:** _${REASON}_
+        🕒 **Timestamp:** \`$TIMESTAMP\`
+        EOF
+        fi
+        
+        gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md
+
+    - name: Enforce GEval Decision
+      run: |
+        EXIT_CODE="${{ steps.geval.outputs.exitcode }}"
+        if [ "$EXIT_CODE" = "0" ]; then
+          echo "GEval PASS."
+        elif [ "$EXIT_CODE" = "1" ]; then
+          if [ -f ".geval/approval.json" ]; then
+            APPROVED_BY=$(jq -r '.approved_by' .geval/approval.json)
+            REASON=$(jq -r '.reason' .geval/approval.json)
+            TIMESTAMP=$(jq -r '.timestamp' .geval/approval.json)
+            echo "✅ GEval mapped to REQUIRE_APPROVAL, but an explicit approval artifact was found!"
+            echo "   • Approved By: $APPROVED_BY"
+            echo "   • Reason: $REASON"
+            echo "   • Timestamp: $TIMESTAMP"
+            echo "Proceeding to pass the build."
+            exit 0
+          else
+            echo "GEval mapped to REQUIRE_APPROVAL, but no local approval artifact was found."
+            echo "You must run 'geval approve --reason \"your reason\"' locally and commit the generated '.geval/approval.json' file to pass this check."
+            exit 1
+          fi
+        else
+          echo "GEval checks failed with BLOCK (exit code $EXIT_CODE). Fail the build."
+          exit 1
+        fi
+
+

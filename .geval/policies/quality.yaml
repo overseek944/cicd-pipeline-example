@@ -1,0 +1,47 @@
+name: quality-gate
+version: "1.0.0"
+policy:
+  rules:
+    - priority: 1
+      name: sql_correctness_gate
+      when:
+        component: sql_eval
+        metric: sql_correctness
+        operator: "<"
+        threshold: 0.7
+      then:
+        action: block
+        reason: "SQL correctness dropped below 70%"
+    
+    - priority: 2
+      name: sql_quality_gate
+      when:
+        component: sql_eval
+        metric: sql_quality
+        operator: "<"
+        threshold: 3.0
+      then:
+        action: block
+        reason: "SQL quality dropped below 3.0/5"
+    
+    - priority: 3
+      name: e2e_correctness_gate
+      when:
+        component: e2e_eval
+        metric: correctness
+        operator: "<"
+        threshold: 0.6
+      then:
+        action: block
+        reason: "E2E correctness dropped below 60%"
+    
+    - priority: 4
+      name: response_quality_gate
+      when:
+        component: e2e_eval
+        metric: response_quality
+        operator: "<"
+        threshold: 2.5
+      then:
+        action: require_approval
+        reason: "Response quality dropped below 2.5/5"

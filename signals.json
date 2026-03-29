@@ -1,0 +1,30 @@
+{
+  "name": "langsmith-evals",
+  "version": "1.0.0",
+  "signals": [
+    {
+      "system": "text2sql",
+      "component": "sql_eval",
+      "metric": "sql_quality",
+      "value": 3.875
+    },
+    {
+      "system": "text2sql",
+      "component": "sql_eval",
+      "metric": "sql_correctness",
+      "value": 0.75
+    },
+    {
+      "system": "text2sql",
+      "component": "e2e_eval",
+      "metric": "response_quality",
+      "value": 2.25
+    },
+    {
+      "system": "text2sql",
+      "component": "e2e_eval",
+      "metric": "correctness",
+      "value": 0.625
+    }
+  ]
+}
