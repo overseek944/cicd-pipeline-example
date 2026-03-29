@@ -90,7 +90,7 @@ jobs:
           cat <<EOF >> comment.md
         
         ✅ **Approved By Human:** \`$APPROVED_BY\`
-        📝 **Reason:** _$REASON_
+        📝 **Reason:** _${REASON}_
         🕒 **Timestamp:** \`$TIMESTAMP\`
         EOF
         fi
