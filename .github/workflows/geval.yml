@@ -90,7 +90,14 @@ jobs:
           echo "GEval PASS."
         elif [ "$EXIT_CODE" = "1" ]; then
           if [ -f ".geval/approval.json" ]; then
-            echo "GEval mapped to REQUIRE_APPROVAL, but a local approval artifact (.geval/approval.json) was found! Proceeding."
+            APPROVED_BY=$(jq -r '.approved_by' .geval/approval.json)
+            REASON=$(jq -r '.reason' .geval/approval.json)
+            TIMESTAMP=$(jq -r '.timestamp' .geval/approval.json)
+            echo "✅ GEval mapped to REQUIRE_APPROVAL, but an explicit approval artifact was found!"
+            echo "   • Approved By: $APPROVED_BY"
+            echo "   • Reason: $REASON"
+            echo "   • Timestamp: $TIMESTAMP"
+            echo "Proceeding to pass the build."
             exit 0
           else
             echo "GEval mapped to REQUIRE_APPROVAL, but no local approval artifact was found."
