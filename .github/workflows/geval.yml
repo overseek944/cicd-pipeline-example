@@ -89,7 +89,14 @@ jobs:
         if [ "$EXIT_CODE" = "0" ]; then
           echo "GEval PASS."
         elif [ "$EXIT_CODE" = "1" ]; then
-          echo "GEval mapped to REQUIRE_APPROVAL. Skipping auto-failure so reviewing humans can decide."
+          if [ -f ".geval/approval.json" ]; then
+            echo "GEval mapped to REQUIRE_APPROVAL, but a local approval artifact (.geval/approval.json) was found! Proceeding."
+            exit 0
+          else
+            echo "GEval mapped to REQUIRE_APPROVAL, but no local approval artifact was found."
+            echo "You must run 'geval approve --reason \"your reason\"' locally and commit the generated '.geval/approval.json' file to pass this check."
+            exit 1
+          fi
         else
           echo "GEval checks failed with BLOCK (exit code $EXIT_CODE). Fail the build."
           exit 1
