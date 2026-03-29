@@ -81,6 +81,20 @@ jobs:
         $RESULT
         \`\`\`
         EOF
+        
+        # Append approval info to the PR comment if it exists
+        if [ -f ".geval/approval.json" ]; then
+          APPROVED_BY=$(jq -r '.approved_by' .geval/approval.json)
+          REASON=$(jq -r '.reason' .geval/approval.json)
+          TIMESTAMP=$(jq -r '.timestamp' .geval/approval.json)
+          cat <<EOF >> comment.md
+        
+        ✅ **Approved By Human:** \`$APPROVED_BY\`
+        📝 **Reason:** _$REASON_
+        🕒 **Timestamp:** \`$TIMESTAMP\`
+        EOF
+        fi
+        
         gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md
 
     - name: Enforce GEval Decision
